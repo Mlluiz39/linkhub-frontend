@@ -158,6 +158,7 @@
 
 <script setup>
 import { ref, onMounted, computed } from 'vue'
+import { supabase } from '../lib/supabase'
 
 const title = ref('')
 const url = ref('')
@@ -165,25 +166,36 @@ const search = ref('')
 const links = ref([])
 const showAddForm = ref(false)
 
-function loadLinks() {
-  const saved = localStorage.getItem('links')
-  links.value = saved ? JSON.parse(saved) : []
+async function loadLinks() {
+  const { data, error } = await supabase
+    .from('links')
+    .select('*')
+    .order('created_at', { ascending: false })
+
+  if (!error) {
+    links.value = data
+  } else {
+    if (error.status === 404) {
+      links.value = []
+    }
+    console.error('Erro ao carregar links:', error)
+  }
 }
 
-function saveLinks() {
-  localStorage.setItem('links', JSON.stringify(links.value))
-}
+async function addLink() {
+  const { data, error } = await supabase
+    .from('links')
+    .insert([{ title: title.value, url: url.value }])
+    .select()
 
-function addLink() {
-  links.value.unshift({
-    id: Date.now(),
-    title: title.value.trim(),
-    url: url.value.trim(),
-  })
-  saveLinks()
-  title.value = ''
-  url.value = ''
-  showAddForm.value = false
+  if ((error, data)) {
+    links.value.unshift(data[0]) // Adiciona o novo link no início da lista
+    title.value = ''
+    url.value = ''
+    showAddForm.value = false
+  } else {
+    console.error('Erro ao adicionar link:', error)
+  }
 }
 
 const filteredLinks = computed(() => {
