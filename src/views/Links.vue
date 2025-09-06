@@ -63,7 +63,7 @@
         v-for="link in filteredLinks"
         :key="link.id"
         class="bg-gray-100 p-4 rounded-lg cursor-pointer"
-        @click="e => handleCardClick(e, link)"
+        @click="handleCardClick($event, link)"
       >
         <div class="flex gap-4 items-start">
           <img
@@ -150,42 +150,42 @@
 
 <script setup>
 import { ref, computed, onMounted } from 'vue'
-import { supabase } from '../lib/supabase'
+import api from '../lib/api'
 
 const title = ref('')
 const url = ref('')
 const search = ref('')
 const links = ref([])
-const showAddForm = ref(false)
 
+const showAddForm = ref(false)
 const editingLink = ref(null)
 const editedTitle = ref('')
 const editedUrl = ref('')
 
 async function loadLinks() {
-  const { data, error } = await supabase
-    .from('links')
-    .select('*')
-    .order('created_at', { ascending: false })
-  if (!error) {
-    links.value = data
-  } else {
-    console.error('Erro ao carregar links:', error)
+  try {
+    const { data } = await api.get('/links')
+    // Garante que sempre seja um array
+    links.value = Array.isArray(data.links) ? data.links : []
+  } catch (err) {
+    console.error('Erro ao carregar links:', err)
+    links.value = []
   }
 }
 
 async function addLink() {
-  const { data, error } = await supabase
-    .from('links')
-    .insert([{ title: title.value, url: url.value }])
-    .select()
-  if (!error && data.length) {
-    links.value.unshift(data[0])
+  try {
+    const { data } = await api.post('/links', {
+      title: title.value,
+      url: url.value,
+    })
+    const created = data?.link ?? data
+    if (created) links.value = [created, ...links.value]
     title.value = ''
     url.value = ''
     showAddForm.value = false
-  } else {
-    console.error('Erro ao adicionar link:', error)
+  } catch (err) {
+    console.error('Erro ao adicionar link:', err)
   }
 }
 
@@ -196,53 +196,51 @@ function startEdit(link) {
 }
 
 async function saveEdit() {
-  const { data, error } = await supabase
-    .from('links')
-    .update({ title: editedTitle.value, url: editedUrl.value })
-    .eq('id', editingLink.value.id)
-    .select()
-
-  if (!error && data.length) {
-    const index = links.value.findIndex(l => l.id === editingLink.value.id)
-    links.value[index] = data[0]
+  if (!editingLink.value) return
+  try {
+    const { data } = await api.put(`/links/${editingLink.value.id}`, {
+      title: editedTitle.value,
+      url: editedUrl.value,
+    })
+    const updated = data?.link ?? data
+    const idx = links.value.findIndex(l => l.id === editingLink.value.id)
+    if (idx !== -1 && updated) links.value.splice(idx, 1, updated)
     editingLink.value = null
-  } else {
-    console.error('Erro ao atualizar link:', error)
+  } catch (err) {
+    console.error('Erro ao salvar edição:', err)
   }
 }
 
 async function deleteLink(id) {
-  const { error } = await supabase.from('links').delete().eq('id', id)
-  if (!error) {
+  try {
+    await api.delete(`/links/${id}`)
     links.value = links.value.filter(link => link.id !== id)
-  } else {
-    console.error('Erro ao excluir link:', error)
+  } catch (err) {
+    console.error('Erro ao excluir link:', err)
   }
 }
 
 function handleCardClick(e, link) {
-  // Evita abrir o link ao clicar nos botões ou inputs
   if (
     e.target.closest('button') ||
     e.target.tagName === 'INPUT' ||
     e.target.tagName === 'TEXTAREA' ||
-    editingLink?.id === link.id
+    editingLink.value?.id === link.id
   )
     return
   window.open(link.url, '_blank')
 }
 
 const filteredLinks = computed(() => {
-  return links.value.filter(
-    link =>
-      link.title.toLowerCase().includes(search.value.toLowerCase()) ||
-      link.url.toLowerCase().includes(search.value.toLowerCase())
+  const q = (search.value || '').toLowerCase()
+  return (links.value || []).filter(
+    l =>
+      (l.title || '').toLowerCase().includes(q) ||
+      (l.url || '').toLowerCase().includes(q)
   )
 })
 
-onMounted(() => {
-  loadLinks()
-})
+onMounted(loadLinks)
 </script>
 
 <style scoped>
