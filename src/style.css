@@ -1,1 +1,23 @@
 @import "tailwindcss";
+
+html, body {
+	height: 100%;
+	margin: 0;
+	padding: 0;
+	overflow: hidden;
+}
+
+body {
+	min-height: 100vh;
+	width: 100vw;
+	box-sizing: border-box;
+}
+
+/* Oculta barra de rolagem em todos navegadores */
+::-webkit-scrollbar {
+	display: none;
+}
+body {
+	-ms-overflow-style: none;
+	scrollbar-width: none;
+}
