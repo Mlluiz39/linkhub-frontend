@@ -6,7 +6,7 @@ export default function Home() {
   return (
     <section className="h-full w-full flex flex-col items-center justify-center px-4 py-12 overflow-hidden">
       <div className="w-full max-w-md text-center">
-        <div className='mb-6 w-72 mx-auto'>
+        <div className="mb-6 w-72 mx-auto">
           <img
             src={redesSociaisImg}
             alt="Redes sociais flutuando"
@@ -27,12 +27,11 @@ export default function Home() {
           <i className="fab fa-facebook text-blue-600"></i>
           <i className="fab fa-tiktok text-black"></i>
         </div>
-        <Link
-          to="/links"
-          className="inline-block w-full bg-purple-600 text-white text-lg font-semibold py-4 rounded-xl shadow hover:bg-purple-700 transition-all"
-        >
-          Começar Agora
-        </Link>
+        <div>
+          <p className="text-purple-600 font-semibold sm:text-lg">
+            Clique em Links para começar !!!
+          </p>
+        </div>
       </div>
     </section>
   )
