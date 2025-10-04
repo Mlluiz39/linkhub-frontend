@@ -5,7 +5,7 @@ import { GoogleLogin } from '@react-oauth/google'
 const Login = ({ onSuccess }) => {
   const handleGoogleLogin = async credentialResponse => {
     try {
-      const res = await api.post('/auth/google', {
+      const res = await api.post('/auth/login', {
         token: credentialResponse.credential,
       })
 
