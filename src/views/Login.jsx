@@ -1,6 +1,7 @@
 import React, { useState } from 'react'
 import api from '../lib/api'
 import { GoogleLogin } from '@react-oauth/google'
+import LinkHub from '../assets/images/linkHub.png'
 
 const Auth = ({ onSuccess }) => {
   const [isLogin, setIsLogin] = useState(true) // Toggle entre login e cadastro
@@ -56,9 +57,9 @@ const Auth = ({ onSuccess }) => {
       {/* Left side - Illustration */}
       <div className="hidden md:flex w-1/2 bg-gradient-to-br from-blue-500 to-purple-600 items-center justify-center">
         <img
-          src="https://source.unsplash.com/600x800/?technology,abstract"
+          src={LinkHub}
           alt="Login Illustration"
-          className="w-3/4 h-auto rounded-xl shadow-lg"
+          className="w-96 h-auto rounded-xl shadow-lg"
         />
       </div>
 
