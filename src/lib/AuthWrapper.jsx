@@ -2,8 +2,7 @@ import { GoogleOAuthProvider } from '@react-oauth/google'
 import Login from '../views/Login'
 import { AuthProvider, useAuth } from './AuthContext'
 
-const GOOGLE_CLIENT_ID =
-  '37636929163-4l0tgcuaqnp4csarn2kqbalbl0diejpo.apps.googleusercontent.com'
+const GOOGLE_CLIENT_ID = import.meta.env.VITE_GOOGLE_CLIENT_ID
 
 export default function AuthWrapper({ children }) {
   return (
