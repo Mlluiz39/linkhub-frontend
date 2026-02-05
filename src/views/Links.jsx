@@ -1,6 +1,40 @@
-import { useState, useEffect } from 'react'
+import { useState, useEffect, useMemo } from 'react'
 import api from '../lib/api'
 import '../style.css'
+
+const PLATFORMS = {
+  all: { name: 'Todos', icon: 'fas fa-globe', color: 'text-purple-400' },
+  youtube: { name: 'YouTube', icon: 'fab fa-youtube', color: 'text-red-500' },
+  facebook: { name: 'Facebook', icon: 'fab fa-facebook', color: 'text-blue-600' },
+  tiktok: { name: 'TikTok', icon: 'fab fa-tiktok', color: 'text-white' },
+  instagram: { name: 'Instagram', icon: 'fab fa-instagram', color: 'text-pink-500' },
+  twitter: { name: 'Twitter/X', icon: 'fab fa-twitter', color: 'text-sky-400' },
+  linkedin: { name: 'LinkedIn', icon: 'fab fa-linkedin', color: 'text-blue-500' },
+  github: { name: 'GitHub', icon: 'fab fa-github', color: 'text-gray-300' },
+  spotify: { name: 'Spotify', icon: 'fab fa-spotify', color: 'text-green-500' },
+  twitch: { name: 'Twitch', icon: 'fab fa-twitch', color: 'text-purple-400' },
+  discord: { name: 'Discord', icon: 'fab fa-discord', color: 'text-indigo-400' },
+  whatsapp: { name: 'WhatsApp', icon: 'fab fa-whatsapp', color: 'text-green-400' },
+  telegram: { name: 'Telegram', icon: 'fab fa-telegram', color: 'text-sky-400' },
+  other: { name: 'Outros', icon: 'fas fa-link', color: 'text-purple-400' },
+}
+
+function getPlatform(url) {
+  const lowerUrl = url.toLowerCase()
+  if (lowerUrl.includes('youtube') || lowerUrl.includes('youtu.be')) return 'youtube'
+  if (lowerUrl.includes('facebook') || lowerUrl.includes('fb.com')) return 'facebook'
+  if (lowerUrl.includes('tiktok')) return 'tiktok'
+  if (lowerUrl.includes('instagram')) return 'instagram'
+  if (lowerUrl.includes('twitter') || lowerUrl.includes('x.com')) return 'twitter'
+  if (lowerUrl.includes('linkedin')) return 'linkedin'
+  if (lowerUrl.includes('github')) return 'github'
+  if (lowerUrl.includes('spotify')) return 'spotify'
+  if (lowerUrl.includes('twitch')) return 'twitch'
+  if (lowerUrl.includes('discord')) return 'discord'
+  if (lowerUrl.includes('whatsapp') || lowerUrl.includes('wa.me')) return 'whatsapp'
+  if (lowerUrl.includes('telegram') || lowerUrl.includes('t.me')) return 'telegram'
+  return 'other'
+}
 
 export default function LinksPage() {
   const [title, setTitle] = useState('')
@@ -12,6 +46,7 @@ export default function LinksPage() {
   const [editedTitle, setEditedTitle] = useState('')
   const [editedUrl, setEditedUrl] = useState('')
   const [importing, setImporting] = useState(false)
+  const [selectedPlatform, setSelectedPlatform] = useState('all')
 
   useEffect(() => {
     loadLinks()
@@ -110,7 +145,7 @@ export default function LinksPage() {
         alert('Erro ao importar backup. Verifique o arquivo.')
       } finally {
         setImporting(false)
-        e.target.value = null // Reset input
+        e.target.value = null
       }
     }
     reader.readAsText(file)
@@ -126,202 +161,286 @@ export default function LinksPage() {
     window.open(link.url, '_blank')
   }
 
-  const filteredLinks = links.filter(
-    l =>
-      (l.title || '').toLowerCase().includes(search.toLowerCase()) ||
-      (l.url || '').toLowerCase().includes(search.toLowerCase())
-  )
+  // Get available platforms (only those with links)
+  const availablePlatforms = useMemo(() => {
+    const platformCounts = { all: links.length }
+    links.forEach(link => {
+      const platform = getPlatform(link.url)
+      platformCounts[platform] = (platformCounts[platform] || 0) + 1
+    })
+    return Object.entries(PLATFORMS)
+      .filter(([key]) => key === 'all' || platformCounts[key] > 0)
+      .map(([key, value]) => ({ key, ...value, count: platformCounts[key] || 0 }))
+  }, [links])
+
+  // Filter links by search and selected platform
+  const filteredLinks = useMemo(() => {
+    return links.filter(link => {
+      const matchesSearch = 
+        (link.title || '').toLowerCase().includes(search.toLowerCase()) ||
+        (link.url || '').toLowerCase().includes(search.toLowerCase())
+      
+      const matchesPlatform = 
+        selectedPlatform === 'all' || getPlatform(link.url) === selectedPlatform
+      
+      return matchesSearch && matchesPlatform
+    })
+  }, [links, search, selectedPlatform])
 
   return (
-  <div className="min-h-screen h-screen w-full flex flex-col max-w-screen-md md:max-w-3xl lg:max-w-4xl mx-auto p-4">
-      {/* Menu/header fixo no topo */}
-      <div className='bg-white sticky top-0 z-30 pt-4 p-6 shadow-white rounded-2xl'>
-        <header className="sticky top-0 z-20 flex justify-between items-center py-6 w-full">
-          <div>
-            <h1 className="text-3xl lg:text-4xl text-blue-700 font-bold">
-              LinkHub
-            </h1>
-            <p className="text-gray-500 text-sm lg:text-base -mt-1">
-              Gerencie seus links
-            </p>
+    <div className="min-h-full flex flex-col px-4 py-6 md:px-8">
+      <div className="w-full max-w-5xl mx-auto space-y-6">
+        
+        {/* Header */}
+        <header className="glass-dark rounded-2xl p-6 animate-fade-in">
+          <div className="flex flex-col md:flex-row md:items-center md:justify-between gap-4">
+            <div>
+              <h1 className="text-3xl md:text-4xl font-bold text-gradient">
+                Meus Links
+              </h1>
+              <p className="text-purple-200/60 text-sm mt-1">
+                {links.length} link{links.length !== 1 ? 's' : ''} salvos
+              </p>
+            </div>
+            
+            {/* Search */}
+            <div className="flex-1 max-w-md">
+              <div className="relative">
+                <i className="fas fa-search absolute left-4 top-1/2 -translate-y-1/2 text-purple-300/50"></i>
+                <input
+                  value={search}
+                  onChange={e => setSearch(e.target.value)}
+                  type="text"
+                  placeholder="Pesquisar links..."
+                  className="w-full pl-11 pr-4 py-3 rounded-xl bg-white/10 border border-purple-500/20 text-white placeholder-purple-300/40 focus:outline-none focus:ring-2 focus:ring-purple-500/50 focus:border-transparent transition-all"
+                />
+              </div>
+            </div>
+          </div>
+
+          {/* Actions */}
+          <div className="flex flex-wrap gap-3 mt-5">
+            <button
+              onClick={() => setShowAddForm(true)}
+              className="flex items-center gap-2 px-5 py-2.5 bg-gradient-to-r from-purple-600 to-violet-600 text-white rounded-xl font-medium hover:shadow-lg hover:shadow-purple-500/30 hover:-translate-y-0.5 transition-all btn-shimmer"
+            >
+              <i className="fas fa-plus"></i>
+              Novo Link
+            </button>
+            <button
+              onClick={handleExportBackup}
+              className="flex items-center gap-2 px-4 py-2.5 glass text-purple-200 rounded-xl hover:bg-white/20 transition-all"
+            >
+              <i className="fas fa-download"></i>
+              Exportar
+            </button>
+            <label className="flex items-center gap-2 px-4 py-2.5 glass text-purple-200 rounded-xl hover:bg-white/20 transition-all cursor-pointer">
+              <i className="fas fa-upload"></i>
+              {importing ? 'Importando...' : 'Importar'}
+              <input
+                type="file"
+                accept=".json"
+                className="hidden"
+                onChange={handleImportBackup}
+                disabled={importing}
+              />
+            </label>
           </div>
         </header>
-        {/* Área de busca e botão de adicionar */}
-        <div className="sticky top-[72px] z-10 flex flex-col sm:flex-row items-stretch sm:items-center gap-2 w-full py-2">
-          <input
-            value={search}
-            onChange={e => setSearch(e.target.value)}
-            type="text"
-            placeholder="Pesquisar links..."
-            className="flex-grow p-3 rounded-2xl bg-gray-100 focus:outline-none focus:ring-2 focus:ring-purple-500"
-          />
-          <button
-            onClick={() => setShowAddForm(true)}
-            className="w-full sm:w-12 h-12 bg-purple-600 text-white rounded-2xl flex items-center justify-center hover:bg-purple-700 text-xl"
-          >
-            +
-          </button>
-        </div>
-        
-        {/* Backup Actions */}
-        <div className="flex gap-2 w-full justify-end mt-2">
-          <button
-            onClick={handleExportBackup}
-            className="text-sm bg-gray-200 text-gray-700 px-3 py-1 rounded hover:bg-gray-300 transition-colors"
-          >
-            Exportar Backup
-          </button>
-          <label className="text-sm bg-gray-200 text-gray-700 px-3 py-1 rounded hover:bg-gray-300 transition-colors cursor-pointer flex items-center">
-            {importing ? 'Importando...' : 'Importar Backup'}
-            <input
-              type="file"
-              accept=".json"
-              className="hidden"
-              onChange={handleImportBackup}
-              disabled={importing}
-            />
-          </label>
-        </div>
-      </div>
-      {/* Lista de links rolável, ocupa o restante da tela */}
-      <div className="flex-1 min-h-0 w-full overflow-y-auto pt-2 bg-gray-50">
-        <h2 className="font-bold text-xl lg:text-2xl text-blue-700 mb-2 w-full">
-          Links Recentes
-        </h2>
-        <ul className="space-y-4 w-full">
-          {filteredLinks.map(link => (
-            <li
-              key={link.id}
-              className="bg-gray-100 p-4 rounded-lg cursor-pointer"
-              onClick={e => handleCardClick(e, link)}
+
+        {/* Platform Tabs */}
+        <div className="flex gap-2 overflow-x-auto pb-2 scrollbar-hide animate-slide-up">
+          {availablePlatforms.map(({ key, name, icon, color, count }) => (
+            <button
+              key={key}
+              onClick={() => setSelectedPlatform(key)}
+              className={`flex items-center gap-2 px-4 py-3 rounded-xl font-medium transition-all flex-shrink-0 ${
+                selectedPlatform === key
+                  ? 'glass-dark bg-purple-600/30 border border-purple-500/50 text-white shadow-lg shadow-purple-500/20'
+                  : 'glass text-purple-200/70 hover:text-white hover:bg-white/10'
+              }`}
             >
-              <div className="flex gap-4 items-start">
-                {link.url.includes('youtube') && (
-                  <img
-                    src="/icons/youtube.svg"
-                    className="w-8 h-8 md:w-10 md:h-10 flex-shrink-0"
-                  />
-                )}
-                {link.url.includes('facebook') && (
-                  <img
-                    src="/icons/facebook.svg"
-                    className="w-8 h-8 md:w-10 md:h-10 flex-shrink-0"
-                  />
-                )}
-                {link.url.includes('tiktok') && (
-                  <img
-                    src="/icons/tiktok.svg"
-                    className="w-8 h-8 md:w-10 md:h-10 flex-shrink-0"
-                  />
-                )}
-                {link.url.includes('instagram') && (
-                  <img
-                    src="/icons/instagram.svg"
-                    className="w-8 h-8 md:w-10 md:h-10 flex-shrink-0"
-                  />
-                )}
-                <div className="flex-1">
-                  <h3 className="font-semibold text-base lg:text-lg">
-                    {link.title}
-                  </h3>
-                  <p className="text-sm text-gray-600 break-all">{link.url}</p>
-                  <div className="flex justify-end gap-2 mt-2">
-                    <button
-                      onClick={e => {
-                        e.stopPropagation()
-                        startEdit(link)
-                      }}
-                      className="text-sm text-blue-600 hover:underline"
-                    >
-                      Editar
-                    </button>
-                    <button
-                      onClick={e => {
-                        e.stopPropagation()
-                        deleteLink(link.id)
-                      }}
-                      className="text-sm text-red-600 hover:underline"
-                    >
-                      Excluir
-                    </button>
-                  </div>
-                  {editingLink && editingLink.id === link.id && (
-                    <div className="mt-4 space-y-2">
-                      <input
-                        value={editedTitle}
-                        onChange={e => setEditedTitle(e.target.value)}
-                        type="text"
-                        className="w-full p-2 border rounded"
-                      />
-                      <input
-                        value={editedUrl}
-                        onChange={e => setEditedUrl(e.target.value)}
-                        type="url"
-                        className="w-full p-2 border rounded"
-                      />
-                      <div className="flex gap-2">
-                        <button
-                          onClick={saveEdit}
-                          className="bg-green-600 text-white px-4 py-1 rounded hover:bg-green-700"
-                        >
-                          Salvar
-                        </button>
-                        <button
-                          onClick={() => setEditingLink(null)}
-                          className="bg-gray-300 px-4 py-1 rounded hover:bg-gray-400"
-                        >
-                          Cancelar
-                        </button>
-                      </div>
-                    </div>
-                  )}
-                </div>
-              </div>
-            </li>
+              <i className={`${icon} text-lg ${selectedPlatform === key ? color : ''}`}></i>
+              <span className="hidden sm:inline">{name}</span>
+              <span className={`text-xs px-2 py-0.5 rounded-full ${
+                selectedPlatform === key ? 'bg-white/20' : 'bg-white/10'
+              }`}>
+                {count}
+              </span>
+            </button>
           ))}
-        </ul>
+        </div>
+
+        {/* Links Grid */}
+        <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-4 animate-fade-in">
+          {filteredLinks.map((link, index) => {
+            const platform = getPlatform(link.url)
+            const platformInfo = PLATFORMS[platform]
+            
+            return (
+              <div
+                key={link.id}
+                className="glass-dark rounded-xl p-4 cursor-pointer card-hover group"
+                onClick={e => handleCardClick(e, link)}
+                style={{ animationDelay: `${index * 0.03}s` }}
+              >
+                {editingLink && editingLink.id === link.id ? (
+                  <div className="space-y-3">
+                    <input
+                      value={editedTitle}
+                      onChange={e => setEditedTitle(e.target.value)}
+                      type="text"
+                      className="w-full p-2.5 rounded-lg bg-white/10 border border-purple-500/30 text-white text-sm placeholder-purple-300/40 focus:outline-none focus:ring-2 focus:ring-purple-500/50"
+                      placeholder="Título"
+                    />
+                    <input
+                      value={editedUrl}
+                      onChange={e => setEditedUrl(e.target.value)}
+                      type="url"
+                      className="w-full p-2.5 rounded-lg bg-white/10 border border-purple-500/30 text-white text-sm placeholder-purple-300/40 focus:outline-none focus:ring-2 focus:ring-purple-500/50"
+                      placeholder="URL"
+                    />
+                    <div className="flex gap-2">
+                      <button
+                        onClick={saveEdit}
+                        className="flex-1 px-3 py-2 bg-green-600 text-white rounded-lg hover:bg-green-700 transition-colors text-sm font-medium"
+                      >
+                        <i className="fas fa-check mr-1"></i> Salvar
+                      </button>
+                      <button
+                        onClick={() => setEditingLink(null)}
+                        className="px-3 py-2 glass text-purple-200 rounded-lg hover:bg-white/20 transition-colors text-sm"
+                      >
+                        Cancelar
+                      </button>
+                    </div>
+                  </div>
+                ) : (
+                  <div className="flex items-start gap-3">
+                    {/* Platform Icon */}
+                    <div className="w-10 h-10 rounded-lg glass flex items-center justify-center flex-shrink-0 group-hover:scale-110 transition-transform">
+                      <i className={`${platformInfo.icon} text-xl ${platformInfo.color}`}></i>
+                    </div>
+                    
+                    {/* Content */}
+                    <div className="flex-1 min-w-0">
+                      <h3 className="font-semibold text-white truncate group-hover:text-purple-300 transition-colors">
+                        {link.title}
+                      </h3>
+                      <p className="text-xs text-purple-200/40 truncate mt-0.5">
+                        {link.url}
+                      </p>
+                    </div>
+
+                    {/* Actions */}
+                    <div className="flex gap-1.5 opacity-0 group-hover:opacity-100 transition-opacity">
+                      <button
+                        onClick={e => {
+                          e.stopPropagation()
+                          startEdit(link)
+                        }}
+                        className="w-8 h-8 rounded-lg glass flex items-center justify-center text-blue-400 hover:bg-blue-500/20 transition-all"
+                        title="Editar"
+                      >
+                        <i className="fas fa-pen text-xs"></i>
+                      </button>
+                      <button
+                        onClick={e => {
+                          e.stopPropagation()
+                          deleteLink(link.id)
+                        }}
+                        className="w-8 h-8 rounded-lg glass flex items-center justify-center text-red-400 hover:bg-red-500/20 transition-all"
+                        title="Excluir"
+                      >
+                        <i className="fas fa-trash text-xs"></i>
+                      </button>
+                    </div>
+                  </div>
+                )}
+              </div>
+            )
+          })}
+        </div>
+
+        {/* Empty State */}
         {filteredLinks.length === 0 && (
-          <p className="text-center text-gray-500 mt-12">
-            Nenhum link encontrado.
-          </p>
+          <div className="glass-dark rounded-2xl p-12 text-center animate-fade-in">
+            <div className="w-20 h-20 rounded-full glass mx-auto flex items-center justify-center mb-4">
+              <i className={`${selectedPlatform !== 'all' ? PLATFORMS[selectedPlatform].icon : 'fas fa-link-slash'} text-3xl text-purple-300/50`}></i>
+            </div>
+            <h3 className="text-xl font-semibold text-white mb-2">
+              {search ? 'Nenhum resultado' : `Nenhum link ${selectedPlatform !== 'all' ? `de ${PLATFORMS[selectedPlatform].name}` : 'salvo'}`}
+            </h3>
+            <p className="text-purple-200/50">
+              {search 
+                ? 'Tente buscar com outros termos'
+                : 'Clique em "Novo Link" para adicionar'
+              }
+            </p>
+          </div>
         )}
       </div>
 
-      {/* Modal para adicionar link */}
+      {/* Modal Add Link */}
       {showAddForm && (
-        <div className="fixed inset-0 z-50 flex items-center justify-center" style={{ background: 'rgba(0,0,0,0.25)' }}>
+        <div 
+          className="fixed inset-0 z-50 flex items-center justify-center p-4 animate-fade-in"
+          style={{ background: 'rgba(0, 0, 0, 0.6)', backdropFilter: 'blur(8px)' }}
+          onClick={() => setShowAddForm(false)}
+        >
           <form
             onSubmit={addLink}
-            className="bg-white rounded-xl shadow-lg p-6 w-full max-w-md space-y-4 relative z-60"
+            onClick={e => e.stopPropagation()}
+            className="glass-dark rounded-2xl p-6 w-full max-w-md space-y-5 animate-fade-in-scale"
           >
-            <h3 className="text-lg font-bold mb-2">Adicionar novo link</h3>
-            <input
-              value={title}
-              onChange={e => setTitle(e.target.value)}
-              type="text"
-              placeholder="Título do link"
-              className="w-full p-3 border rounded-lg"
-              required
-            />
-            <input
-              value={url}
-              onChange={e => setUrl(e.target.value)}
-              type="url"
-              placeholder="URL do link"
-              className="w-full p-3 border rounded-lg"
-              required
-            />
-            <div className="flex gap-2">
+            <div className="flex items-center justify-between">
+              <h3 className="text-xl font-bold text-white">Novo Link</h3>
+              <button
+                type="button"
+                onClick={() => setShowAddForm(false)}
+                className="w-8 h-8 rounded-lg glass flex items-center justify-center text-purple-300 hover:text-white hover:bg-white/20 transition-all"
+              >
+                <i className="fas fa-times"></i>
+              </button>
+            </div>
+            
+            <div className="space-y-4">
+              <div>
+                <label className="block text-sm text-purple-200/70 mb-2">Título</label>
+                <input
+                  value={title}
+                  onChange={e => setTitle(e.target.value)}
+                  type="text"
+                  placeholder="Ex: Meu Canal do YouTube"
+                  className="w-full p-3.5 rounded-xl bg-white/10 border border-purple-500/30 text-white placeholder-purple-300/40 focus:outline-none focus:ring-2 focus:ring-purple-500/50 focus:border-transparent transition-all"
+                  required
+                />
+              </div>
+              <div>
+                <label className="block text-sm text-purple-200/70 mb-2">URL</label>
+                <input
+                  value={url}
+                  onChange={e => setUrl(e.target.value)}
+                  type="url"
+                  placeholder="https://..."
+                  className="w-full p-3.5 rounded-xl bg-white/10 border border-purple-500/30 text-white placeholder-purple-300/40 focus:outline-none focus:ring-2 focus:ring-purple-500/50 focus:border-transparent transition-all"
+                  required
+                />
+              </div>
+            </div>
+
+            <div className="flex gap-3 pt-2">
               <button
                 type="submit"
-                className="flex-1 bg-purple-600 text-white py-2 rounded-lg hover:bg-purple-700"
+                className="flex-1 py-3 bg-gradient-to-r from-purple-600 to-violet-600 text-white rounded-xl font-semibold hover:shadow-lg hover:shadow-purple-500/30 transition-all btn-shimmer"
               >
-                Salvar link
+                <i className="fas fa-plus mr-2"></i>
+                Adicionar
               </button>
               <button
                 type="button"
                 onClick={() => setShowAddForm(false)}
-                className="flex-1 bg-gray-300 py-2 rounded-lg hover:bg-gray-400"
+                className="px-6 py-3 glass text-purple-200 rounded-xl hover:bg-white/20 transition-all"
               >
                 Cancelar
               </button>
