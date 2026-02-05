@@ -27,10 +27,6 @@ const Auth = ({ onSuccess }) => {
     }
   }
 
-  const handleGoogleError = () => {
-    alert('Erro ao autenticar com Google')
-  }
-
   const handleEmailAuth = async e => {
     e.preventDefault()
     if (!email || !password || (!isLogin && !name)) {
@@ -74,7 +70,7 @@ const Auth = ({ onSuccess }) => {
             <p className="text-gray-500 text-sm">
               {isLogin
                 ? 'Faça login com sua conta Google ou email e senha'
-                : 'Cadastre-se com email e senha ou Google'}
+                : 'Cadastre-se com email e senha'}
             </p>
 
             <div className="mt-3 flex justify-center gap-4 text-sm">
@@ -136,26 +132,6 @@ const Auth = ({ onSuccess }) => {
                 : 'Cadastrar'}
             </button>
           </form>
-
-          {/* Divider */}
-          <div className="flex items-center justify-center space-x-3 text-gray-400">
-            <span className="border-t w-1/3"></span>
-            <span>OU</span>
-            <span className="border-t w-1/3"></span>
-          </div>
-
-          {/* Google Login */}
-          <div className="flex justify-center">
-            <GoogleLogin
-              onSuccess={handleGoogleLogin}
-              onError={handleGoogleError}
-              theme="filled_blue"
-              size="large"
-              width="100%"
-              text="signin_with"
-              shape="rectangular"
-            />
-          </div>
 
           {/* Footer */}
           <div className="text-center text-xs text-gray-500 pt-4">

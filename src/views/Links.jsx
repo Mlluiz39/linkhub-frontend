@@ -11,6 +11,7 @@ export default function LinksPage() {
   const [editingLink, setEditingLink] = useState(null)
   const [editedTitle, setEditedTitle] = useState('')
   const [editedUrl, setEditedUrl] = useState('')
+  const [importing, setImporting] = useState(false)
 
   useEffect(() => {
     loadLinks()
@@ -70,6 +71,51 @@ export default function LinksPage() {
     }
   }
 
+  async function handleExportBackup() {
+    try {
+      const { data } = await api.get('/links/backup')
+      const json = JSON.stringify(data, null, 2)
+      const blob = new Blob([json], { type: 'application/json' })
+      const url = URL.createObjectURL(blob)
+      const a = document.createElement('a')
+      a.href = url
+      a.download = `backup-links-${new Date().toISOString().slice(0, 10)}.json`
+      document.body.appendChild(a)
+      a.click()
+      document.body.removeChild(a)
+    } catch (err) {
+      console.error('Erro ao exportar backup:', err)
+      alert('Erro ao exportar backup.')
+    }
+  }
+
+  async function handleImportBackup(e) {
+    const file = e.target.files[0]
+    if (!file) return
+
+    setImporting(true)
+    const reader = new FileReader()
+    reader.onload = async event => {
+      try {
+        const json = JSON.parse(event.target.result)
+        if (!json.links || !Array.isArray(json.links)) {
+          throw new Error('Formato de arquivo inválido.')
+        }
+
+        await api.post('/links/restore', { links: json.links })
+        alert('Backup importado com sucesso!')
+        loadLinks()
+      } catch (err) {
+        console.error('Erro ao importar backup:', err)
+        alert('Erro ao importar backup. Verifique o arquivo.')
+      } finally {
+        setImporting(false)
+        e.target.value = null // Reset input
+      }
+    }
+    reader.readAsText(file)
+  }
+
   function handleCardClick(e, link) {
     if (
       e.target.closest('button') ||
@@ -115,6 +161,26 @@ export default function LinksPage() {
           >
             +
           </button>
+        </div>
+        
+        {/* Backup Actions */}
+        <div className="flex gap-2 w-full justify-end mt-2">
+          <button
+            onClick={handleExportBackup}
+            className="text-sm bg-gray-200 text-gray-700 px-3 py-1 rounded hover:bg-gray-300 transition-colors"
+          >
+            Exportar Backup
+          </button>
+          <label className="text-sm bg-gray-200 text-gray-700 px-3 py-1 rounded hover:bg-gray-300 transition-colors cursor-pointer flex items-center">
+            {importing ? 'Importando...' : 'Importar Backup'}
+            <input
+              type="file"
+              accept=".json"
+              className="hidden"
+              onChange={handleImportBackup}
+              disabled={importing}
+            />
+          </label>
         </div>
       </div>
       {/* Lista de links rolável, ocupa o restante da tela */}

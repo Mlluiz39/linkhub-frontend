@@ -2,7 +2,7 @@
 import axios from 'axios'
 
 const api = axios.create({
-  baseURL: 'https://api.mlluizdevtech.com.br', // ou seu backend em produção
+  baseURL: 'https://back-end-linkshub.onrender.com', 
 })
 
 // Interceptor para adicionar JWT automaticamente
